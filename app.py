@@ -1,24 +1,32 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template
 import mysql.connector
+import os
+import time
 
-# Initialize the Flask app
 app = Flask(__name__, template_folder="templates")
 
-# Database connection details
-DB_HOST = 'mysql'  # Container name in docker-compose
-DB_USER = 'root'
-DB_PASSWORD = 'password'
-DB_NAME = 'registration_db'
+# Fetch database connection details from environment variables
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_USER = os.getenv('DB_USER', 'root')
+DB_PASSWORD = os.getenv('DB_PASSWORD', 'password')
+DB_NAME = os.getenv('DB_NAME', 'registration_db')
 
-# Connect to MySQL database
 def get_db_connection():
-    conn = mysql.connector.connect(
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME
-    )
-    return conn
+    retries = 5
+    while retries > 0:
+        try:
+            conn = mysql.connector.connect(
+                host=DB_HOST,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                database=DB_NAME
+            )
+            return conn
+        except mysql.connector.Error as err:
+            print(f"Database connection failed: {err}. Retrying in 5 seconds...")
+            time.sleep(5)
+            retries -= 1
+    raise Exception("Database connection could not be established after retries.")
 
 @app.route("/", methods=["GET", "POST"])
 def register():
@@ -40,7 +48,7 @@ def register():
                                 age INT,
                                 gender VARCHAR(50),
                                 course VARCHAR(50))''')
-            cursor.execute('INSERT INTO users (name, age, gender, course) VALUES (%s, %s, %s, %s)', 
+            cursor.execute('INSERT INTO users (name, age, gender, course) VALUES (%s, %s, %s, %s)',
                            (name, age, gender, course))
             conn.commit()
             conn.close()

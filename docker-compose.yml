@@ -5,33 +5,40 @@ services:
     image: mysql:5.7
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root  # replace with your MySQL root password
-      MYSQL_DATABASE: root
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: registration_db
     volumes:
       - db_data:/var/lib/mysql
     networks:
       - priya_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     ports:
-      - "3306:3306"  # Expose MySQL port for the app to connect
+      - "3306:3306"
 
   app:
     build: .
     command: python app.py
     volumes:
-      - ./frontend:/app
+      - .:/app
     ports:
-      - "5000:5000"  # Map port 5000 of the container to port 5000 on the host
+      - "5000:5000"
     depends_on:
-      - db  # Ensure the app starts after the db service is up
+      db:
+        condition: service_healthy
     environment:
       DB_HOST: db
       DB_USER: root
-      DB_PASS: root  # Replace with your actual MySQL root password
+      DB_PASSWORD: root
+      DB_NAME: registration_db
     networks:
       - priya_network
 
 volumes:
-  db_data:  # Persistent volume for MySQL data
+  db_data:
 
 networks:
   priya_network:

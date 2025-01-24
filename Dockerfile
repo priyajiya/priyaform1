@@ -1,17 +1,30 @@
-FROM python:3.9-slim
+# Stage 1: Build stage
+FROM python:3.9-slim AS builder
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
+# Copy dependency files
+COPY requirements.txt /app/
+
+# Install dependencies
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2: Final stage
+FROM python:3.9-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy only the installed dependencies from the builder stage
+COPY --from=builder /install /usr/local
+
+# Copy the application files
 COPY . /app
 
-# Install dependencies from requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Expose port 5000 for the app
+# Expose the application port
 EXPOSE 5000
 
-# Start the application
+# Command to run the application
 CMD ["python", "app.py"]
 
